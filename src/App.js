@@ -3,10 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Assets from "./pages/Assets";
-
+import Licenses from "./pages/Licenses";
 // Placeholder pages
 
-const Licenses = () => <div><h2>Licenses Page</h2></div>;
 const Tickets = () => <div><h2>Tickets Page</h2></div>;
 const Settings = () => <div><h2>Settings Page</h2></div>;
 
