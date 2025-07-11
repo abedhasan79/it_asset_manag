@@ -5,8 +5,8 @@ import Dashboard from "./pages/Dashboard";
 import Assets from "./pages/Assets";
 import Licenses from "./pages/Licenses";
 import Tickets from "./pages/SupportTickets";
+import Settings from "./pages/Settings";
 
-const Settings = () => <div><h2>Settings Page</h2></div>;
 
 function App() {
   return (
