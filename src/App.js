@@ -4,9 +4,8 @@ import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Assets from "./pages/Assets";
 import Licenses from "./pages/Licenses";
-// Placeholder pages
+import Tickets from "./pages/SupportTickets";
 
-const Tickets = () => <div><h2>Tickets Page</h2></div>;
 const Settings = () => <div><h2>Settings Page</h2></div>;
 
 function App() {
