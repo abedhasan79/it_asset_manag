@@ -1,27 +1,53 @@
-import React, { useState } from "react";
-import { FaPlus, FaEdit, FaTrash, FaSortAlphaDown, FaSortAlphaUp } from "react-icons/fa";
-
-const initialAssets = [
-  { id: 1, name: "Reception PC", type: "PC", serial: "PC-001", status: "Active" },
-  { id: 2, name: "Printer HP 2035", type: "Printer", serial: "PR-008", status: "Active" },
-  { id: 3, name: "Therapy Router", type: "Router", serial: "RT-452", status: "Inactive" },
-];
+import React, { useEffect, useState } from "react";
+import {
+  getAssets,
+  createAsset,
+  updateAsset,
+  deleteAsset,
+} from "../services/api";
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaSortAlphaDown,
+  FaSortAlphaUp,
+} from "react-icons/fa";
 
 const Assets = () => {
-  const [assets, setAssets] = useState(initialAssets);
+  const [assets, setAssets] = useState([]);
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editId, setEditId] = useState(null); // null = adding
+  const [editId, setEditId] = useState(null);
 
   const [sortKey, setSortKey] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
     type: "",
-    serial: "",
+    serialNumber: null,
+    purchaseDate: "",
+    warrantyExpiry: null,
+    assignedTo: "",
+    location: "",
     status: "Active",
   });
+
+  useEffect(() => {
+    loadAssets();
+  }, []);
+
+  const loadAssets = async () => {
+    try {
+      const data = await getAssets();
+      setAssets(data);
+    } catch (err) {
+      console.error("Failed to fetch assets:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleModal = () => setModalOpen(!modalOpen);
 
@@ -32,8 +58,21 @@ const Assets = () => {
   };
 
   const startEdit = (asset) => {
-    setEditId(asset.id);
-    setFormData(asset);
+    setEditId(asset._id);
+    setFormData({
+      name: asset.name || "",
+      type: asset.type || "",
+      serialNumber: asset.serialNumber || "",
+      status: asset.status || "Active",
+      purchaseDate: asset.purchaseDate
+        ? asset.purchaseDate.slice(0, 10)
+        : "",
+      warrantyExpiry: asset.warrantyExpiry
+        ? asset.warrantyExpiry.slice(0, 10)
+        : "",
+      assignedTo: asset.assignedTo || "",
+      location: asset.location || "",
+    });
     setModalOpen(true);
   };
 
@@ -42,26 +81,44 @@ const Assets = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.type || !formData.serial) return;
+    if (!formData.name || !formData.type || !formData.serialNumber) return;
 
-    if (editId) {
-      setAssets((prev) =>
-        prev.map((a) => (a.id === editId ? { ...formData, id: editId } : a))
-      );
-    } else {
-      const newAsset = { ...formData, id: Date.now() };
-      setAssets((prev) => [...prev, newAsset]);
+    // Convert date strings to Date objects
+    const payload = {
+      ...formData,
+      purchaseDate: formData.purchaseDate ? new Date(formData.purchaseDate) : null,
+      warrantyExpiry: formData.warrantyExpiry ? new Date(formData.warrantyExpiry) : null,
+    };
+
+    try {
+      if (editId) {
+        const updated = await updateAsset(editId, payload);
+        setAssets((prev) =>
+          prev.map((a) => (a._id === editId ? updated : a))
+        );
+      } else {
+        const newAsset = await createAsset(payload);
+        setAssets((prev) => [...prev, newAsset]);
+      }
+      setModalOpen(false);
+    } catch (err) {
+      alert("Error saving asset");
+      console.error(err);
     }
-
-    setModalOpen(false);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const confirm = window.confirm("Are you sure you want to delete this asset?");
     if (confirm) {
-      setAssets((prev) => prev.filter((a) => a.id !== id));
+      try {
+        await deleteAsset(id);
+        setAssets((prev) => prev.filter((a) => a._id !== id));
+      } catch (err) {
+        alert("Error deleting asset");
+        console.error(err);
+      }
     }
   };
 
@@ -85,6 +142,8 @@ const Assets = () => {
       if (a[sortKey] > b[sortKey]) return sortAsc ? 1 : -1;
       return 0;
     });
+
+  if (loading) return <div className="p-6">Loading assets...</div>;
 
   return (
     <div className="space-y-6">
@@ -121,6 +180,10 @@ const Assets = () => {
                 Type {sortKey === "type" && (sortAsc ? <FaSortAlphaDown /> : <FaSortAlphaUp />)}
               </th>
               <th className="p-3 border-b">Serial</th>
+              <th className="p-3 border-b">Purchase Date</th>
+              <th className="p-3 border-b">Warranty Expiry</th>
+              <th className="p-3 border-b">Assigned To</th>
+              <th className="p-3 border-b">Location</th>
               <th className="p-3 border-b">Status</th>
               <th className="p-3 border-b">Actions</th>
             </tr>
@@ -128,17 +191,20 @@ const Assets = () => {
           <tbody>
             {filteredAssets.length > 0 ? (
               filteredAssets.map((asset) => (
-                <tr key={asset.id} className="hover:bg-gray-50">
+                <tr key={asset._id} className="hover:bg-gray-50">
                   <td className="p-3 border-b">{asset.name}</td>
                   <td className="p-3 border-b">{asset.type}</td>
-                  <td className="p-3 border-b">{asset.serial}</td>
+                  <td className="p-3 border-b">{asset.serialNumber}</td>
+                  <td className="p-3 border-b">{asset.purchaseDate.slice(0, 10)}</td>
+                  <td className="p-3 border-b">{asset.warrantyExpiry.slice(0, 10)}</td>
+                  <td className="p-3 border-b">{asset.assignedTo}</td>
+                  <td className="p-3 border-b">{asset.location}</td>
                   <td className="p-3 border-b">
                     <span
-                      className={`inline-block px-2 py-1 text-xs rounded-full ${
-                        asset.status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
+                      className={`inline-block px-2 py-1 text-xs rounded-full ${asset.status === "Active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                        }`}
                     >
                       {asset.status}
                     </span>
@@ -152,7 +218,7 @@ const Assets = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(asset.id)}
+                      onClick={() => handleDelete(asset._id)}
                       className="text-red-600 hover:underline text-sm"
                     >
                       <FaTrash className="inline mr-1" />
@@ -198,9 +264,40 @@ const Assets = () => {
               />
               <input
                 type="text"
-                name="serial"
+                name="serialNumber"
                 placeholder="Serial Number"
-                value={formData.serial}
+                value={formData.serialNumber}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 px-3 py-2 rounded"
+              />
+              <input
+                type="date"
+                name="purchaseDate"
+                value={formData.purchaseDate}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 px-3 py-2 rounded"
+              />
+
+              <input
+                type="date"
+                name="warrantyExpiry"
+                value={formData.warrantyExpiry}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 px-3 py-2 rounded"
+              />
+              <input
+                type="text"
+                name="assignedTo"
+                placeholder="Assigned To"
+                value={formData.assignedTo}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 px-3 py-2 rounded"
+              />
+              <input
+                type="text"
+                name="location"
+                placeholder="Location"
+                value={formData.location}
                 onChange={handleInputChange}
                 className="w-full border border-gray-300 px-3 py-2 rounded"
               />
