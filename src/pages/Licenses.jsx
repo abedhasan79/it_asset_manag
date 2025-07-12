@@ -1,56 +1,46 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FaPlus,
   FaEdit,
   FaTrash,
   FaSortAlphaDown,
   FaSortAlphaUp,
-  FaCalendarAlt,
 } from "react-icons/fa";
-
-const initialLicenses = [
-  {
-    id: 1,
-    name: "Microsoft 365",
-    software: "Office Suite",
-    expiry: "2025-08-15",
-    seats: 10,
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Norton Antivirus",
-    software: "Antivirus",
-    expiry: "2024-07-20",
-    seats: 5,
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Clinic EMR",
-    software: "EMR System",
-    expiry: "2024-05-10",
-    seats: 3,
-    status: "Expired",
-  },
-];
+import {
+  fetchLicenses,
+  createLicense,
+  updateLicense,
+  deleteLicense,
+} from "../services/api";
 
 const Licenses = () => {
-  const [licenses, setLicenses] = useState(initialLicenses);
+  const [licenses, setLicenses] = useState([]);
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
-
   const [sortKey, setSortKey] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
-    software: "",
-    expiry: "",
-    seats: "",
+    vendor: "",
+    key: "",
+    startDate: "",
+    expiryDate: "",
+    seats: 1,
+    assignedTo: "",
     status: "Active",
   });
+
+  const loadLicenses = async () => {
+    const data = await fetchLicenses();
+    setLicenses(data);
+  };
+
+  useEffect(() => {
+    loadLicenses();
+  }, []);
+
 
   const toggleModal = () => setModalOpen(!modalOpen);
 
@@ -58,17 +48,29 @@ const Licenses = () => {
     setEditId(null);
     setFormData({
       name: "",
-      software: "",
-      expiry: "",
-      seats: "",
+      vendor: "",
+      key: "",
+      startDate: "",
+      expiryDate: "",
+      seats: 1,
+      assignedTo: "",
       status: "Active",
     });
     setModalOpen(true);
   };
 
   const startEdit = (license) => {
-    setEditId(license.id);
-    setFormData(license);
+    setEditId(license._id);
+    setFormData({
+      name: license.name,
+      vendor: license.vendor,
+      key: license.key,
+      startDate: license.startDate?.slice(0, 10),
+      expiryDate: license.expiryDate?.slice(0, 10),
+      seats: license.seats || 1,
+      assignedTo: license.assignedTo || "",
+      status: license.status || "Active",
+    });
     setModalOpen(true);
   };
 
@@ -77,76 +79,68 @@ const Licenses = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.software || !formData.expiry || !formData.seats) return;
+    const payload = {
+      ...formData,
+      startDate: formData.startDate ? new Date(formData.startDate) : null,
+      expiryDate: formData.expiryDate ? new Date(formData.expiryDate) : null,
+    };
 
-    if (editId) {
-      setLicenses((prev) =>
-        prev.map((l) => (l.id === editId ? { ...formData, id: editId } : l))
-      );
-    } else {
-      const newLicense = { ...formData, id: Date.now() };
-      setLicenses((prev) => [...prev, newLicense]);
+    try {
+      if (editId) {
+        const updated = await updateLicense(editId, payload);
+        updated.status = new Date(updated.expiryDate) >= new Date() ? "Active" : "Inactive";
+        setLicenses((prev) =>
+          prev.map((l) => (l._id === editId ? updated : l))
+        );
+      } else {
+        const newOne = await createLicense(payload);
+        setLicenses((prev) => [...prev, newOne]);
+      }
+      setModalOpen(false);
+    } catch (err) {
+      alert("Error saving license");
+      console.error(err);
     }
-    setModalOpen(false);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this license?")) {
-      setLicenses((prev) => prev.filter((l) => l.id !== id));
-    }
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this license?")) return;
+    await deleteLicense(id);
+    setLicenses((prev) => prev.filter((l) => l._id !== id));
   };
 
   const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortAsc(!sortAsc);
-    } else {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else {
       setSortKey(key);
       setSortAsc(true);
     }
   };
 
-  // Calculate days to expiry and color class
-  const getExpiryStatus = (expiryDate) => {
-    const today = new Date();
-    const expiry = new Date(expiryDate);
-    const diffDays = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return "expired"; // expired
-    if (diffDays <= 30) return "expiring"; // expiring soon (30 days)
-    return "ok"; // healthy
-  };
-
-  const filteredLicenses = licenses
+  const filtered = licenses
     .filter(
       (l) =>
         l.name.toLowerCase().includes(query.toLowerCase()) ||
-        l.software.toLowerCase().includes(query.toLowerCase())
+        l.vendor.toLowerCase().includes(query.toLowerCase())
     )
     .sort((a, b) => {
-      if (sortKey === "expiry") {
-        const dateA = new Date(a.expiry);
-        const dateB = new Date(b.expiry);
-        return sortAsc ? dateA - dateB : dateB - dateA;
-      } else {
-        if (a[sortKey] < b[sortKey]) return sortAsc ? -1 : 1;
-        if (a[sortKey] > b[sortKey]) return sortAsc ? 1 : -1;
-        return 0;
-      }
+      if (a[sortKey] < b[sortKey]) return sortAsc ? -1 : 1;
+      if (a[sortKey] > b[sortKey]) return sortAsc ? 1 : -1;
+      return 0;
     });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <h1 className="text-3xl font-bold text-gray-800">Licenses</h1>
 
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <input
             type="text"
-            placeholder="Search by name or software..."
+            placeholder="Search..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 w-full sm:w-64"
@@ -165,79 +159,61 @@ const Licenses = () => {
         <table className="min-w-full border text-sm text-left bg-white shadow-md rounded-md">
           <thead className="bg-gray-100">
             <tr>
-              <th
-                className="p-3 border-b cursor-pointer"
-                onClick={() => handleSort("name")}
-              >
+              <th className="p-3 border-b cursor-pointer" onClick={() => handleSort("name")}>
                 Name {sortKey === "name" && (sortAsc ? <FaSortAlphaDown /> : <FaSortAlphaUp />)}
               </th>
-              <th className="p-3 border-b">Software</th>
-              <th
-                className="p-3 border-b cursor-pointer"
-                onClick={() => handleSort("expiry")}
-              >
-                Expiry Date {sortKey === "expiry" && (sortAsc ? <FaSortAlphaDown /> : <FaSortAlphaUp />)}
-              </th>
+              <th className="p-3 border-b">Vendor</th>
+              <th className="p-3 border-b">Key</th>
               <th className="p-3 border-b">Seats</th>
+              <th className="p-3 border-b">Assigned To</th>
+              <th className="p-3 border-b">Start Date</th>
+              <th className="p-3 border-b">Expiry Date</th>
               <th className="p-3 border-b">Status</th>
               <th className="p-3 border-b">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredLicenses.length > 0 ? (
-              filteredLicenses.map((license) => {
-                const expiryStatus = getExpiryStatus(license.expiry);
-                return (
-                  <tr
-                    key={license.id}
-                    className={`hover:bg-gray-50 ${
-                      expiryStatus === "expired"
-                        ? "bg-red-50"
-                        : expiryStatus === "expiring"
-                        ? "bg-yellow-50"
-                        : ""
-                    }`}
-                  >
-                    <td className="p-3 border-b">{license.name}</td>
-                    <td className="p-3 border-b">{license.software}</td>
-                    <td className="p-3 border-b flex items-center gap-1">
-                      <FaCalendarAlt />
-                      {new Date(license.expiry).toLocaleDateString()}
-                    </td>
-                    <td className="p-3 border-b">{license.seats}</td>
-                    <td className="p-3 border-b">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs rounded-full ${
-                          license.status === "Active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+            {filtered.length > 0 ? (
+              filtered.map((l) => (
+                <tr key={l._id} className="hover:bg-gray-50">
+                  <td className="p-3 border-b">{l.name}</td>
+                  <td className="p-3 border-b">{l.vendor}</td>
+                  <td className="p-3 border-b">{l.key}</td>
+                  <td className="p-3 border-b">{l.seats}</td>
+                  <td className="p-3 border-b">{l.assignedTo}</td>
+                  <td className="p-3 border-b">{l.startDate?.slice(0, 10)}</td>
+                  <td className="p-3 border-b">{l.expiryDate?.slice(0, 10)}</td>
+                  <td className="p-3 border-b">
+                    <span
+                      className={`inline-block px-2 py-1 text-xs rounded-full ${l.status === "Active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
                         }`}
-                      >
-                        {license.status}
-                      </span>
-                    </td>
-                    <td className="p-3 border-b space-x-2">
-                      <button
-                        onClick={() => startEdit(license)}
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        <FaEdit className="inline mr-1" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(license.id)}
-                        className="text-red-600 hover:underline text-sm"
-                      >
-                        <FaTrash className="inline mr-1" />
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
+                    >
+                      {l.status}
+                    </span>
+                  </td>
+                  <td className="p-3 border-b space-x-2">
+                    <button
+                      onClick={() => startEdit(l)}
+                      className="text-blue-600 hover:underline text-sm"
+                    >
+                      <FaEdit className="inline mr-1" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(l._id)}
+                      className="text-red-600 hover:underline text-sm"
+                    >
+                      <FaTrash className="inline mr-1" />
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
-                <td colSpan="6" className="text-center text-gray-500 p-6">
+                <td colSpan="7" className="text-center text-gray-500 p-6">
                   No licenses found.
                 </td>
               </tr>
@@ -260,47 +236,65 @@ const Licenses = () => {
                 placeholder="License Name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
-                required
+                className="w-full border px-3 py-2 rounded"
               />
               <input
                 type="text"
-                name="software"
-                placeholder="Software Name"
-                value={formData.software}
+                name="vendor"
+                placeholder="Vendor"
+                value={formData.vendor}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
-                required
+                className="w-full border px-3 py-2 rounded"
               />
               <input
-                type="date"
-                name="expiry"
-                placeholder="Expiry Date"
-                value={formData.expiry}
+                type="text"
+                name="key"
+                placeholder="License Key"
+                value={formData.key}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
-                required
+                className="w-full border px-3 py-2 rounded"
               />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  className="w-full border px-3 py-2 rounded"
+                />
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={formData.expiryDate}
+                  onChange={handleInputChange}
+                  className="w-full border px-3 py-2 rounded"
+                />
+              </div>
               <input
                 type="number"
-                min="1"
                 name="seats"
                 placeholder="Seats"
                 value={formData.seats}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
-                required
+                className="w-full border px-3 py-2 rounded"
               />
-              <select
+              <input
+                type="text"
+                name="assignedTo"
+                placeholder="Assigned To"
+                value={formData.assignedTo}
+                onChange={handleInputChange}
+                className="w-full border px-3 py-2 rounded"
+              />
+              {/* <select
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
-                required
+                className="w-full border px-3 py-2 rounded"
               >
                 <option value="Active">Active</option>
-                <option value="Expired">Expired</option>
-              </select>
+                <option value="Inactive">Inactive</option>
+              </select> */}
 
               <div className="flex justify-end gap-2">
                 <button
