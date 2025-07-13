@@ -59,4 +59,30 @@ export const deleteLicense = async (id) => {
     return res.data;
 };
 
+// Tickets
+export const fetchTickets = async () => {
+    const res = await api.get("/tickets");
+    return res.data;
+};
+
+export const createTicket = async (ticketData) => {
+    const res = await api.post("/tickets", ticketData);
+    return res.data;
+};
+
+export const updateTicket = async (id, ticketData) => {
+    const res = await api.put(`/tickets/${id}`, ticketData);
+    return res.data;
+};
+
+export const deleteTicket = async (id) => {
+    const res = await api.delete(`/tickets/${id}`);
+    return res.data;
+};
+
+export const fetchITStaff = async () => {
+    const res = await api.get("/users/it"); // adjust if route is different
+    return res.data;
+};
+
 export default api;

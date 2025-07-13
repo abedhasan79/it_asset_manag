@@ -1,31 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import AuthModal from "./AuthModal";
-import { getCurrentUser } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ onToggleSidebar }) => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoadingUser(false);
-      return;
-    }
-
-    getCurrentUser()
-      .then((data) => setUser(data))
-      .catch(() => {
-        localStorage.removeItem("token");
-        setUser(null);
-      })
-      .finally(() => setLoadingUser(false));
-  }, []);
+  const { user, setUser, loading } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    navigate("/")
   };
 
   return (
@@ -41,7 +27,7 @@ const Navbar = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center gap-4">
-        {loadingUser ? (
+        {loading ? (
           <span>Loading...</span>
         ) : user ? (
           <>
@@ -68,7 +54,7 @@ const Navbar = ({ onToggleSidebar }) => {
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        onAuthSuccess={(newUser) => setUser(newUser)}
+        onAuthSuccess={(newUser) => setUser(newUser)} // sets global user
       />
     </nav>
   );
