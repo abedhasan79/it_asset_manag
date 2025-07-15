@@ -27,8 +27,10 @@ export const login = (data) => api.post('/auth/login', data);
 // -------- User --------
 
 export const getCurrentUser = () => api.get('/users/me');
-
+export const updateUserInfo = (data) => api.put('/users/me/info', data);
+export const changeUserPassword = (data) => api.put('/users/me/password', data);
 export const getClinicInfo = () => api.get('/users/clinic');
+export const updateProfile = (data) => api.put('/users/me', data);
 
 // -------- Assets --------
 
