@@ -5,7 +5,7 @@ import Register from './pages/Register';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import AssetsTab from './pages/AssetsTab';
-// import LicensesTab from './pages/LicensesTab';
+import LicensesTab from './pages/LicensesTab';
 // import TicketsTab from './pages/TicketsTab';
 // import ProfileTab from './pages/ProfileTab';
 import { useAuth } from './context/AuthContext';
@@ -23,7 +23,7 @@ const App = () => {
           <Route path="/" element={<DashboardLayout />}>
             <Route path="dashboard" element={<DashboardHome />} />
             <Route path="assets" element={<AssetsTab />} />
-            {/* <Route path="licenses" element={<LicensesTab />} /> */}
+            <Route path="licenses" element={<LicensesTab />} />
             {/* <Route path="tickets" element={<TicketsTab />} /> */}
             {/* <Route path="profile" element={<ProfileTab />} /> */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
