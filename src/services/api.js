@@ -68,4 +68,10 @@ export const updateTicket = (id, data) => api.put(`/tickets/${id}`, data);
 
 export const deleteTicket = (id) => api.delete(`/tickets/${id}`);
 
+//..........summary ...............
+export const getAssetSummary = () => api.get('/assets/summary');
+export const getLicenseSummary = () => api.get('/licenses/summary');
+export const getTicketSummary = () => api.get('/tickets/summary');
+
+
 export default api;

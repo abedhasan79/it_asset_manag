@@ -6,7 +6,7 @@ const Sidebar = () => {
     `block px-4 py-2 rounded hover:bg-blue-100 ${isActive ? 'bg-blue-200 font-semibold' : ''}`;
 
   return (
-    <aside className="w-60 bg-white border-r p-4 space-y-2">
+    <aside className="w-80 bg-gradient-to-b from-gray-800 via-gray-600 to-gray-400 text-white p-4 space-y-2">
       <h2 className="text-xl font-bold mb-4">Navigation</h2>
       <NavLink to="/dashboard" className={navItemStyle}>Dashboard</NavLink>
       <NavLink to="/assets" className={navItemStyle}>Assets</NavLink>
