@@ -95,7 +95,7 @@ const AssetsTab = () => {
     );
 
     // Pagination setup (client-side)
-    const itemsPerPage = 5;
+    const itemsPerPage = 50;
     const [page, setPage] = useState(1);
     const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
     const paginatedAssets = filteredAssets.slice(

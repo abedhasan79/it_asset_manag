@@ -20,7 +20,7 @@ const TicketsTab = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 50;
 
   const fetchTickets = async () => {
     setLoading(true);
