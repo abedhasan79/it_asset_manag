@@ -1,88 +1,69 @@
 import axios from "axios";
 import API_BASE_URL from "../config";
 
+// Create axios instance
 const api = axios.create({
-    baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// Auto-attach token (optional)
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+// Add auth token to every request if available
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
-export const getCurrentUser = async () => {
-    const res = await api.get("/auth/me");
-    return res.data;
-};
+// -------- Auth --------
 
-export const getAssets = async () => {
-    const res = await api.get("/assets");
-    return res.data;
-};
+export const register = (data) => api.post('/auth/register', data);
 
-export const createAsset = async (data) => {
-    const res = await api.post("/assets", data);
-    return res.data;
-};
+export const login = (data) => api.post('/auth/login', data);
 
-export const updateAsset = async (id, data) => {
-    const res = await api.put(`/assets/${id}`, data);
-    return res.data;
-};
+// -------- User --------
 
-export const deleteAsset = async (id) => {
-    const res = await api.delete(`/assets/${id}`);
-    return res.data;
-};
+export const getCurrentUser = () => api.get('/users/me');
 
-export const fetchLicenses = async () => {
-    const res = await api.get("/licenses");
-    return res.data;
-};
+export const getClinicInfo = () => api.get('/users/clinic');
 
-export const createLicense = async (data) => {
-    const res = await api.post("/licenses", data);
-    return res.data;
-};
+// -------- Assets --------
 
-export const updateLicense = async (id, data) => {
-    const res = await api.put(`/licenses/${id}`, data);
-    return res.data;
-};
+export const getAssets = () => api.get('/assets');
 
-export const deleteLicense = async (id) => {
-    const res = await api.delete(`/licenses/${id}`);
-    return res.data;
-};
+export const getAssetById = (id) => api.get(`/assets/${id}`);
 
-// Tickets
-export const fetchTickets = async () => {
-    const res = await api.get("/tickets");
-    return res.data;
-};
+export const createAsset = (data) => api.post('/assets', data);
 
-export const createTicket = async (ticketData) => {
-    const res = await api.post("/tickets", ticketData);
-    return res.data;
-};
+export const updateAsset = (id, data) => api.put(`/assets/${id}`, data);
 
-export const updateTicket = async (id, ticketData) => {
-    const res = await api.put(`/tickets/${id}`, ticketData);
-    return res.data;
-};
+export const deleteAsset = (id) => api.delete(`/assets/${id}`);
 
-export const deleteTicket = async (id) => {
-    const res = await api.delete(`/tickets/${id}`);
-    return res.data;
-};
+// -------- Licenses --------
 
-export const fetchITStaff = async () => {
-    const res = await api.get("/users/it"); // adjust if route is different
-    return res.data;
-};
+export const getLicenses = () => api.get('/licenses');
+
+export const getLicenseById = (id) => api.get(`/licenses/${id}`);
+
+export const createLicense = (data) => api.post('/licenses', data);
+
+export const updateLicense = (id, data) => api.put(`/licenses/${id}`, data);
+
+export const deleteLicense = (id) => api.delete(`/licenses/${id}`);
+
+// -------- Tickets --------
+
+export const getTickets = () => api.get('/tickets');
+
+export const getTicketById = (id) => api.get(`/tickets/${id}`);
+
+export const createTicket = (data) => api.post('/tickets', data);
+
+export const updateTicket = (id, data) => api.put(`/tickets/${id}`, data);
+
+export const deleteTicket = (id) => api.delete(`/tickets/${id}`);
 
 export default api;

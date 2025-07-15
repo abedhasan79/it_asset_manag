@@ -1,28 +1,39 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout";
-import Dashboard from "./pages/Dashboard";
-import Assets from "./pages/Assets";
-import Licenses from "./pages/Licenses";
-import Tickets from "./pages/SupportTickets";
-import Settings from "./pages/Settings";
-import { useAuth } from "./context/AuthContext";
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
-function App() {
-  const { user } = useAuth();
+import DashboardLayout from './components/DashboardLayout';
+import DashboardHome from './pages/DashboardHome';
+// import AssetsTab from './pages/AssetsTab';
+// import LicensesTab from './pages/LicensesTab';
+// import TicketsTab from './pages/TicketsTab';
+// import ProfileTab from './pages/ProfileTab';
+import { useAuth } from './context/AuthContext';
+
+const App = () => {
+  const { isLoggedIn } = useAuth();
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="assets" element={<Assets />} />
-          <Route path="licenses" element={<Licenses />} />
-          <Route path="/tickets" element={<Tickets user={user} />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
+        <Route path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/dashboard" />} />
+        <Route path="/register" element={!isLoggedIn ? <Register /> : <Navigate to="/dashboard" />} />
+
+        {isLoggedIn && (
+          <Route path="/" element={<DashboardLayout />}>
+            <Route path="dashboard" element={<DashboardHome />} />
+            {/* <Route path="assets" element={<AssetsTab />} />
+            <Route path="licenses" element={<LicensesTab />} />
+            <Route path="tickets" element={<TicketsTab />} />
+            <Route path="profile" element={<ProfileTab />} /> */}
+            <Route path="*" element={<Navigate to="/dashboard" />} />
+          </Route>
+        )}
+
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );
-}
+};
 
 export default App;

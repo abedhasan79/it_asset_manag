@@ -1,40 +1,28 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { getCurrentUser } from "../services/api";
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
 
-    // Check token and fetch user on load
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            setLoading(false);
-            return;
-        }
-        getCurrentUser()
-            .then((data) => setUser(data))
-            .catch(() => localStorage.removeItem("token"))
-            .finally(() => setLoading(false));
-    }, []);
+  const login = (newToken) => {
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
+  };
 
-    // const login = (userData) => {
-    //     setUser(userData);
-    //     localStorage.setItem("token", userData.token); 
-    // };
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+  };
 
-    // const logout = () => {
-    //     localStorage.removeItem("token");
-    //     setUser(null);
-    // };
+  const isLoggedIn = !!token;
 
-    return (
-        <AuthContext.Provider value={{ user, setUser, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return (
+    <AuthContext.Provider value={{ token, login, logout, isLoggedIn }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
+// Hook to access auth context
 export const useAuth = () => useContext(AuthContext);
