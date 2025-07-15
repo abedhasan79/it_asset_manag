@@ -7,7 +7,7 @@ import DashboardHome from './pages/DashboardHome';
 import AssetsTab from './pages/AssetsTab';
 import LicensesTab from './pages/LicensesTab';
 import TicketsTab from './pages/TicketsTab';
-// import ProfileTab from './pages/ProfileTab';
+import ProfileTab from './pages/ProfileTab';
 import { useAuth } from './context/AuthContext';
 
 const App = () => {
@@ -25,7 +25,7 @@ const App = () => {
             <Route path="assets" element={<AssetsTab />} />
             <Route path="licenses" element={<LicensesTab />} />
             <Route path="tickets" element={<TicketsTab />} />
-            {/* <Route path="profile" element={<ProfileTab />} /> */}
+            <Route path="profile" element={<ProfileTab />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Route>
         )}
